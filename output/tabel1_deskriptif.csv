@@ -1,0 +1,16 @@
+,Produktivitas TBS (ton/ha/tahun),Umur tanaman (tahun),Defisit air klimatik (mm/tahun)
+n,1676.0,1676.0,1676.0
+rata-rata,24.15,14.4,84.37
+median,24.42,14.0,68.0
+modus,27.34,14.0,46.0
+simpangan baku,3.23,4.11,58.19
+varians,10.44,16.92,3386.57
+minimum,11.65,5.0,0.0
+Q1,22.25,11.0,44.0
+Q3,26.51,18.0,104.25
+maksimum,32.34,24.0,271.0
+jangkauan,20.69,19.0,271.0
+IQR,4.26,7.0,60.25
+koef. variasi (%),13.38,28.57,68.97
+skewness,-0.56,0.07,1.21
+kurtosis,0.33,-0.78,0.66

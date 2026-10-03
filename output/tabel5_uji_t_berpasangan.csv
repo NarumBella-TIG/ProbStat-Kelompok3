@@ -1,0 +1,5 @@
+Periode,n pasangan,rata-rata presisi,rata-rata kontrol,rata-rata selisih,t,p-value,keputusan
+2019-2023 (sebelum),596,24.3727,24.3676,0.0051,0.0679,0.9459,tidak signifikan
+2024-2025 (perlakuan),240,24.1912,23.027,1.1642,9.3741,0.0,signifikan
+2024,120,23.4338,22.1597,1.2741,7.0106,0.0,signifikan
+2025,120,24.9487,23.8942,1.0544,6.2208,0.0,signifikan

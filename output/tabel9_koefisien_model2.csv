@@ -1,0 +1,5 @@
+,koefisien,p-value
+Intercept,4.51161,0.0
+palm_age_yr,3.27914,0.0
+I(palm_age_yr ** 2),-0.11908,0.0
+climatic_water_deficit_mm,-0.01033,0.0

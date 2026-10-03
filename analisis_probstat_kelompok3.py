@@ -1,6 +1,5 @@
 # %% [markdown]
-# # Analisis Pengaruh Manajemen Nutrisi Presisi Berbasis Sensor terhadap Produktivitas TBS
-# # Kelapa Sawit
+# # Analisis Pengaruh Manajemen Nutrisi Presisi Berbasis Sensor terhadap Produktivitas TBS Kelapa Sawit
 #
 # **Projek Probabilitas dan Statistika - Kelompok 3 (3 TI F), Politeknik Caltex Riau**
 #

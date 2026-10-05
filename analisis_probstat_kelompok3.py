@@ -73,10 +73,22 @@ print("Jumlah blok:", df["block_id"].nunique(),
       "| jumlah pasangan:", df["matched_pair_id"].nunique())
 print("Tahun pengamatan:", sorted(df["observation_year"].unique().tolist()))
 
-# Missing value per kolom (hanya kolom yang ada data kosongnya)
+# %%
+# Hitung data kosong (missing value) di setiap kolom
 missing = df.isna().sum()
-print("\nMissing value:")
-print(missing[missing > 0])
+missing = missing[missing > 0]          # tampilkan hanya kolom yang ada data kosongnya
+
+tabel_missing = pd.DataFrame({
+    "jumlah kosong": missing,
+    "persen (%)": (missing / len(df) * 100).round(2),
+})
+print("Total sel kosong:", int(df.isna().sum().sum()), "dari", df.size, "sel")
+print("Kolom yang punya data kosong:", len(missing), "dari", df.shape[1])
+print(tabel_missing)
+
+# Pastikan tiga variabel utama tidak ada yang kosong
+print("\nMissing pada variabel utama:")
+print(df[["ffb_yield_t_ha", "palm_age_yr", "climatic_water_deficit_mm"]].isna().sum())
 
 # %%
 # Tiga variabel utama dan satu variabel pengelompok

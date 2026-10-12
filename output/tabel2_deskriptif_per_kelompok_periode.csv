@@ -1,0 +1,5 @@
+periode,assigned_group,n,rata-rata,median,simpangan baku,minimum,maksimum
+2019-2023 (sebelum),Blok kontrol (seragam),597,24.37,24.53,2.89,15.1,32.12
+2019-2023 (sebelum),Blok presisi (sensor),599,24.38,24.46,2.81,15.6,30.64
+2024-2025 (sesudah),Blok kontrol (seragam),240,23.03,23.46,3.85,11.65,30.91
+2024-2025 (sesudah),Blok presisi (sensor),240,24.19,24.79,4.04,13.18,32.34

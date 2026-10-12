@@ -2,9 +2,9 @@
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/NarumBella-TIG/ProbStat-Kelompok3/blob/main/analisis_probstat_kelompok3.ipynb)
 
-**Analisis Pengaruh Manajemen Nutrisi Presisi Berbasis Sensor terhadap Produktivitas Tandan Buah Segar (TBS) Kelapa Sawit di Kalimantan Tengah Tahun 2019-2025**
+**Analisis Deskriptif Produktivitas Tandan Buah Segar (TBS) Kelapa Sawit Berdasarkan Sistem Pemupukan, Umur Tanaman, dan Defisit Air di Kalimantan Tengah Tahun 2019-2025**
 
-Politeknik Caltex Riau, Program Studi Teknologi Informasi.
+Politeknik Caltex Riau, Program Studi Teknik Informatika.
 
 | NIM | Nama |
 | --- | --- |
@@ -16,8 +16,8 @@ Politeknik Caltex Riau, Program Studi Teknologi Informasi.
 ## Rumusan masalah
 
 1. Bagaimana gambaran produktivitas TBS, umur tanaman, dan defisit air klimatik pada 240 blok kebun sawit tahun 2019-2025?
-2. Apakah terdapat perbedaan rata-rata produktivitas TBS yang signifikan antara blok pemupukan presisi berbasis sensor dan blok pemupukan seragam pada tahun 2024-2025?
-3. Seberapa besar pengaruh umur tanaman dan defisit air klimatik terhadap produktivitas TBS?
+2. Bagaimana perbandingan produktivitas TBS antara blok pemupukan presisi berbasis sensor dan blok pemupukan seragam, sebelum dan sesudah sensor digunakan?
+3. Bagaimana gambaran produktivitas TBS berdasarkan kelompok umur tanaman dan tingkat defisit air?
 
 ## Isi repository
 
@@ -42,13 +42,25 @@ python analisis_probstat_kelompok3.py
 
 Grafik dan tabel hasil akan tersimpan di folder `output/`.
 
-## Metode
+## Metode (statistika deskriptif)
 
 | Rumusan masalah | Analisis |
 | --- | --- |
-| RM 1 | Statistika deskriptif (rata-rata, median, modus, simpangan baku, kuartil, skewness, kurtosis), histogram, boxplot, tren per tahun, distribusi normal dan peluang |
-| RM 2 | Uji normalitas Shapiro-Wilk pada selisih, uji t sampel berpasangan (α = 0,05), interval kepercayaan 95%, Cohen's dz, uji Wilcoxon sebagai pembanding |
-| RM 3 | Korelasi Pearson, regresi linear berganda (Model 1 linear dan Model 2 dengan suku umur²), pemeriksaan residual |
+| RM 1 | Ukuran pemusatan (rata-rata, median, modus), penyebaran (jangkauan, varians, simpangan baku, koefisien variasi), letak (kuartil, IQR), dan bentuk (skewness, kurtosis); histogram dan boxplot |
+| RM 2 | Statistik deskriptif produktivitas per kelompok blok (presisi dan kontrol) dan per periode (2019-2023 dan 2024-2025), rata-rata per tahun, grafik tren, boxplot |
+| RM 3 | Statistik deskriptif produktivitas per kelompok umur tanaman dan per tingkat defisit air (rendah, sedang, tinggi berdasarkan kuartil), diagram batang, boxplot |
+
+## Variabel
+
+| Variabel | Kolom | Jenis data |
+| --- | --- | --- |
+| Produktivitas TBS (ton/ha/tahun) | `ffb_yield_t_ha` | Numerik (rasio) |
+| Umur tanaman (tahun) | `palm_age_yr` | Numerik (rasio) |
+| Defisit air klimatik (mm/tahun) | `climatic_water_deficit_mm` | Numerik (rasio) |
+| Kelompok blok | `assigned_group` | Kategorik (nominal) |
+| Periode | dari `observation_year` | Kategorik (ordinal) |
+| Kelompok umur | dari `palm_age_yr` | Kategorik (ordinal) |
+| Tingkat defisit air | dari kuartil `climatic_water_deficit_mm` | Kategorik (ordinal) |
 
 ## Sumber data
 

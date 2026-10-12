@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Analisis Pengaruh Manajemen Nutrisi Presisi Berbasis Sensor terhadap Produktivitas TBS Kelapa Sawit
+# # Analisis Deskriptif Produktivitas TBS Kelapa Sawit Berdasarkan Sistem Pemupukan, Umur Tanaman, dan Defisit Air
 #
 # **Projek Probabilitas dan Statistika - Kelompok 3 (3 TI F), Politeknik Caltex Riau**
 #
@@ -12,9 +12,9 @@
 # Rumusan masalah:
 # 1. Bagaimana gambaran produktivitas TBS, umur tanaman, dan defisit air klimatik pada 240 blok
 #    kebun sawit tahun 2019-2025?
-# 2. Apakah terdapat perbedaan rata-rata produktivitas TBS yang signifikan antara blok pemupukan
-#    presisi berbasis sensor dan blok pemupukan seragam pada tahun 2024-2025?
-# 3. Seberapa besar pengaruh umur tanaman dan defisit air klimatik terhadap produktivitas TBS?
+# 2. Bagaimana perbandingan produktivitas TBS antara blok pemupukan presisi berbasis sensor dan blok
+#    pemupukan seragam, sebelum dan sesudah sensor digunakan?
+# 3. Bagaimana gambaran produktivitas TBS berdasarkan kelompok umur tanaman dan tingkat defisit air?
 
 # %% [markdown]
 # ## 0. Persiapan library
@@ -23,17 +23,14 @@
 import os
 import urllib.request
 
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
-import statsmodels.formula.api as smf
 
 pd.set_option("display.width", 140)
 pd.set_option("display.max_columns", 20)
 plt.rcParams["figure.dpi"] = 110
 
-ALPHA = 0.05            # taraf signifikansi untuk semua uji
 OUT = "output"          # folder hasil grafik dan tabel
 os.makedirs(OUT, exist_ok=True)
 
@@ -91,24 +88,26 @@ print("\nMissing pada variabel utama:")
 print(df[["ffb_yield_t_ha", "palm_age_yr", "climatic_water_deficit_mm"]].isna().sum())
 
 # %%
-# Tiga variabel utama dan satu variabel pengelompok
-Y = "ffb_yield_t_ha"                 # produktivitas TBS (ton/ha/tahun)
-UMUR = "palm_age_yr"                 # umur tanaman (tahun)
+# Tiga variabel utama dan variabel pengelompok
+Y = "ffb_yield_t_ha"                   # produktivitas TBS (ton/ha/tahun)
+UMUR = "palm_age_yr"                   # umur tanaman (tahun)
 DEFISIT = "climatic_water_deficit_mm"  # defisit air klimatik (mm/tahun)
-SISTEM = "management_system"         # sistem pemupukan
 
 UTAMA = [Y, UMUR, DEFISIT]
 LABEL = {Y: "Produktivitas TBS (ton/ha/tahun)",
          UMUR: "Umur tanaman (tahun)",
          DEFISIT: "Defisit air klimatik (mm/tahun)"}
-NAMA_SISTEM = {"sensor_guided_variable_rate": "Presisi berbasis sensor",
-               "uniform_standard": "Seragam (standar)"}
+NAMA_KELOMPOK = {"control_arm": "Blok kontrol (seragam)",
+                 "precision_arm": "Blok presisi (sensor)"}
 
+# Periode: 2019-2023 semua blok dipupuk seragam; mulai 2024 blok presisi memakai sensor
+df["periode"] = df["observation_year"].apply(lambda t: "2019-2023 (sebelum)" if t <= 2023
+                                             else "2024-2025 (sesudah)")
 print(df[UTAMA].dtypes)
 print("Missing pada variabel utama:", int(df[UTAMA].isna().sum().sum()))
 
 # %% [markdown]
-# ## 2. Rumusan Masalah 1: Statistika deskriptif
+# ## 2. Rumusan Masalah 1: Gambaran produktivitas TBS, umur tanaman, dan defisit air
 
 # %%
 def ringkasan(data):
@@ -152,265 +151,143 @@ fig.suptitle("Distribusi variabel utama (n = 1.676)")
 simpan(fig, "gambar1_histogram_variabel_utama.png")
 
 # %%
-# Rata-rata produktivitas per tahun untuk kedua kelompok blok.
-# 2019-2023 semua blok masih dipupuk seragam; 2024-2025 blok precision_arm memakai sensor.
+# Boxplot ketiga variabel utama: melihat kuartil, median, dan pencilan (outlier)
+fig, ax = plt.subplots(1, 3, figsize=(14, 4))
+for i, k in enumerate(UTAMA):
+    ax[i].boxplot(df[k], showmeans=True)
+    ax[i].set_xticks([])
+    ax[i].set_ylabel(LABEL[k])
+fig.suptitle("Boxplot variabel utama (segitiga = rata-rata, garis oranye = median)")
+simpan(fig, "gambar2_boxplot_variabel_utama.png")
+
+# %% [markdown]
+# ## 3. Rumusan Masalah 2: Perbandingan blok presisi berbasis sensor dan blok seragam
+#
+# Setiap blok presisi dipasangkan dengan satu blok kontrol (120 pasangan). Pada 2019-2023 semua blok
+# dipupuk seragam; mulai 2024 blok presisi memakai pemupukan berbasis sensor. Perbandingan dilakukan
+# dengan statistik deskriptif per kelompok, sebelum dan sesudah sensor digunakan.
+
+# %%
+# Statistik deskriptif produktivitas per kelompok blok dan per periode
+tabel_kelompok = (df.groupby(["periode", "assigned_group"])[Y]
+                  .agg(["count", "mean", "median", "std", "min", "max"]).round(2))
+tabel_kelompok.columns = ["n", "rata-rata", "median", "simpangan baku", "minimum", "maksimum"]
+tabel_kelompok = tabel_kelompok.rename(index=NAMA_KELOMPOK)
+tabel_kelompok.to_csv(os.path.join(OUT, "tabel2_deskriptif_per_kelompok_periode.csv"))
+tabel_kelompok
+
+# %%
+# Rata-rata produktivitas per tahun untuk kedua kelompok blok (selisih dihitung sebelum dibulatkan)
 per_tahun = df.pivot_table(index="observation_year", columns="assigned_group",
-                           values=Y, aggfunc="mean").round(2)
+                           values=Y, aggfunc="mean")
 per_tahun.columns = ["Blok kontrol", "Blok presisi"]
-per_tahun["Selisih"] = (per_tahun["Blok presisi"] - per_tahun["Blok kontrol"]).round(2)
-per_tahun.to_csv(os.path.join(OUT, "tabel2_rata_rata_per_tahun.csv"))
+per_tahun["Selisih"] = per_tahun["Blok presisi"] - per_tahun["Blok kontrol"]
+per_tahun = per_tahun.round(2)
+per_tahun.to_csv(os.path.join(OUT, "tabel3_rata_rata_per_tahun.csv"))
 print(per_tahun)
 
 fig, ax = plt.subplots(figsize=(8, 4.5))
 ax.plot(per_tahun.index, per_tahun["Blok kontrol"], marker="o", label="Blok kontrol (seragam)")
 ax.plot(per_tahun.index, per_tahun["Blok presisi"], marker="s",
         label="Blok presisi (sensor mulai 2024)")
-ax.axvspan(2023.5, 2025.5, color="orange", alpha=0.15, label="Periode perlakuan sensor")
+ax.axvspan(2023.5, 2025.5, color="orange", alpha=0.15, label="Periode sensor digunakan")
 ax.set_xlabel("Tahun")
 ax.set_ylabel(LABEL[Y])
 ax.set_title("Rata-rata produktivitas TBS per tahun")
 ax.legend()
-simpan(fig, "gambar2_tren_per_tahun.png")
+simpan(fig, "gambar3_tren_per_tahun.png")
 
 # %%
-# Boxplot produktivitas per sistem pemupukan pada periode perlakuan (2024-2025)
-perlakuan = df[df["observation_year"] >= 2024]
-kelompok = [perlakuan.loc[perlakuan[SISTEM] == s, Y] for s in NAMA_SISTEM]
-
-fig, ax = plt.subplots(figsize=(7, 4.5))
-ax.boxplot(kelompok, tick_labels=list(NAMA_SISTEM.values()), showmeans=True)
-ax.set_ylabel(LABEL[Y])
-ax.set_title("Produktivitas TBS per sistem pemupukan, 2024-2025")
-simpan(fig, "gambar3_boxplot_sistem_pemupukan.png")
-
-tabel_sistem = perlakuan.groupby(SISTEM)[Y].apply(ringkasan).unstack().round(2)
-tabel_sistem.index = [NAMA_SISTEM[i] for i in tabel_sistem.index]
-tabel_sistem.to_csv(os.path.join(OUT, "tabel3_deskriptif_per_sistem.csv"))
-tabel_sistem
+# Boxplot produktivitas kedua kelompok, sebelum dan sesudah sensor digunakan
+fig, ax = plt.subplots(1, 2, figsize=(12, 4.5), sharey=True)
+for i, p in enumerate(["2019-2023 (sebelum)", "2024-2025 (sesudah)"]):
+    data_p = df[df["periode"] == p]
+    kelompok = [data_p.loc[data_p["assigned_group"] == g, Y] for g in NAMA_KELOMPOK]
+    ax[i].boxplot(kelompok, tick_labels=list(NAMA_KELOMPOK.values()), showmeans=True)
+    ax[i].set_title(p)
+ax[0].set_ylabel(LABEL[Y])
+fig.suptitle("Produktivitas TBS per kelompok blok, sebelum dan sesudah sensor digunakan")
+simpan(fig, "gambar4_boxplot_kelompok_periode.png")
 
 # %% [markdown]
-# ## 3. Distribusi probabilitas produktivitas TBS
-#
-# Produktivitas TBS adalah variabel kontinu, sehingga didekati dengan distribusi normal.
-# Kecocokannya diperiksa dengan Q-Q plot, lalu dipakai untuk menghitung peluang.
+# ## 4. Rumusan Masalah 3: Produktivitas berdasarkan kelompok umur tanaman dan tingkat defisit air
 
 # %%
-mu, sigma = df[Y].mean(), df[Y].std()
-x = np.linspace(df[Y].min(), df[Y].max(), 200)
-
-fig, ax = plt.subplots(1, 2, figsize=(12, 4.5))
-ax[0].hist(df[Y], bins=30, density=True, color="#4C72B0", edgecolor="white", label="Data")
-ax[0].plot(x, stats.norm.pdf(x, mu, sigma), "r-", lw=2, label=f"Normal(μ={mu:.2f}, σ={sigma:.2f})")
-ax[0].set_xlabel(LABEL[Y])
-ax[0].set_ylabel("Kepadatan")
-ax[0].legend()
-stats.probplot(df[Y], dist="norm", plot=ax[1])
-ax[1].set_title("Q-Q plot terhadap distribusi normal")
-simpan(fig, "gambar4_distribusi_normal_tbs.png")
-
-# %%
-# Peluang dihitung dua cara: dari model normal dan dari proporsi data sebenarnya (empiris)
-batas_atas, batas_bawah = 28, 20
-peluang = pd.DataFrame({
-    "Model normal": [1 - stats.norm.cdf(batas_atas, mu, sigma),
-                     stats.norm.cdf(batas_bawah, mu, sigma),
-                     stats.norm.cdf(batas_atas, mu, sigma)
-                     - stats.norm.cdf(batas_bawah, mu, sigma)],
-    "Empiris (data)": [(df[Y] > batas_atas).mean(),
-                       (df[Y] < batas_bawah).mean(),
-                       df[Y].between(batas_bawah, batas_atas).mean()],
-}, index=[f"P(TBS > {batas_atas})", f"P(TBS < {batas_bawah})",
-          f"P({batas_bawah} ≤ TBS ≤ {batas_atas})"]).round(4)
-peluang.to_csv(os.path.join(OUT, "tabel4_peluang_normal.csv"))
-print("Skewness:", round(stats.skew(df[Y]), 3), "| Kurtosis:", round(stats.kurtosis(df[Y]), 3))
-peluang
-
-# %% [markdown]
-# ## 4. Rumusan Masalah 2: Uji beda produktivitas blok presisi vs blok seragam
-#
-# Setiap blok presisi sudah dipasangkan dengan satu blok kontrol (120 pasangan),
-# sehingga uji yang dipakai
-# adalah **uji t sampel berpasangan** pada periode perlakuan 2024-2025.
-#
-# - H0: rata-rata selisih produktivitas (presisi - seragam) = 0
-# - H1: rata-rata selisih produktivitas ≠ 0
-# - α = 0,05
-
-# %%
-def data_berpasangan(data):
-    """Satu baris per pasangan per tahun, kolom = produktivitas blok presisi dan blok kontrol."""
-    p = data.pivot_table(index=["matched_pair_id", "observation_year"],
-                         columns="assigned_group", values=Y).dropna()
-    return p["precision_arm"], p["control_arm"]
-
-
-presisi, kontrol = data_berpasangan(perlakuan)
-selisih = presisi - kontrol
-n = len(selisih)
-print("Jumlah pasangan-tahun:", n)
-print(f"Rata-rata selisih: {selisih.mean():.3f} ton/ha | "
-      f"simpangan baku selisih: {selisih.std():.3f}")
-print("Pasangan yang blok presisinya lebih tinggi:", int((selisih > 0).sum()), "dari", n)
-
-# %%
-# Syarat uji t berpasangan: selisih berdistribusi normal (uji Shapiro-Wilk)
-sw = stats.shapiro(selisih)
-print(f"Shapiro-Wilk selisih: W = {sw.statistic:.4f}, p = {sw.pvalue:.4f}")
-print("Kesimpulan:",
-      "selisih berdistribusi normal" if sw.pvalue > ALPHA else "selisih tidak normal")
-
-fig, ax = plt.subplots(figsize=(7, 4.5))
-ax.hist(selisih, bins=25, color="#55A868", edgecolor="white")
-ax.axvline(0, color="black", lw=1)
-ax.axvline(selisih.mean(), color="red", linestyle="--",
-           label=f"rata-rata selisih {selisih.mean():.2f}")
-ax.set_xlabel("Selisih produktivitas presisi - seragam (ton/ha)")
-ax.set_ylabel("Frekuensi")
-ax.set_title("Distribusi selisih per pasangan blok, 2024-2025")
-ax.legend()
-simpan(fig, "gambar5_histogram_selisih_pasangan.png")
-
-# %%
-uji_t = stats.ttest_rel(presisi, kontrol)
-ci = stats.t.interval(1 - ALPHA, df=n - 1, loc=selisih.mean(), scale=stats.sem(selisih))
-cohen_dz = selisih.mean() / selisih.std()
-wilcoxon = stats.wilcoxon(selisih)  # uji nonparametrik sebagai pembanding
-
-print(f"Uji t berpasangan: t({n - 1}) = {uji_t.statistic:.3f}, p = {uji_t.pvalue:.3e}")
-print(f"Interval kepercayaan 95% rata-rata selisih: {ci[0]:.3f} sampai {ci[1]:.3f} ton/ha")
-print(f"Ukuran efek Cohen's dz: {cohen_dz:.3f}")
-print(f"Wilcoxon signed-rank: W = {wilcoxon.statistic:.1f}, p = {wilcoxon.pvalue:.3e}")
-print("Keputusan:",
-      "H0 ditolak, ada perbedaan signifikan" if uji_t.pvalue < ALPHA else "H0 diterima")
-
-# %%
-# Pemeriksaan pembanding: sebelum perlakuan (2019-2023) kedua kelompok seharusnya tidak berbeda.
-# Uji yang sama juga diulang per tahun.
-hasil_uji = []
-periode = {"2019-2023 (sebelum)": df[df["observation_year"] <= 2023],
-           "2024-2025 (perlakuan)": perlakuan,
-           "2024": df[df["observation_year"] == 2024],
-           "2025": df[df["observation_year"] == 2025]}
-for nama, data in periode.items():
-    a, b = data_berpasangan(data)
-    t = stats.ttest_rel(a, b)
-    hasil_uji.append({"Periode": nama, "n pasangan": len(a), "rata-rata presisi": a.mean(),
-                      "rata-rata kontrol": b.mean(), "rata-rata selisih": (a - b).mean(),
-                      "t": t.statistic, "p-value": t.pvalue,
-                      "keputusan": "signifikan" if t.pvalue < ALPHA else "tidak signifikan"})
-tabel_uji = pd.DataFrame(hasil_uji).round(4)
-tabel_uji.to_csv(os.path.join(OUT, "tabel5_uji_t_berpasangan.csv"), index=False)
-tabel_uji
-
-# %% [markdown]
-# ## 5. Rumusan Masalah 3: Pengaruh umur tanaman dan defisit air terhadap produktivitas
-#
-# Langkah: korelasi Pearson, lalu regresi linear berganda. Karena hubungan umur dengan produktivitas
-# diduga melengkung, dibuat dua model:
-#
-# - Model 1: TBS = b0 + b1·umur + b2·defisit
-# - Model 2: TBS = b0 + b1·umur + b2·umur² + b3·defisit
-
-# %%
-hasil_korelasi = []
-for k in [UMUR, DEFISIT]:
-    r, p = stats.pearsonr(df[k], df[Y])
-    hasil_korelasi.append({"Variabel": LABEL[k], "r Pearson": r, "p-value": p,
-                           "keputusan": "signifikan" if p < ALPHA else "tidak signifikan"})
-tabel_korelasi = pd.DataFrame(hasil_korelasi).round(4)
-tabel_korelasi.to_csv(os.path.join(OUT, "tabel6_korelasi.csv"), index=False)
-tabel_korelasi
-
-# %%
-# Rata-rata produktivitas per kelompok umur, untuk melihat bentuk hubungannya
+# Statistik deskriptif produktivitas per kelompok umur tanaman
 df["kelompok_umur"] = pd.cut(df[UMUR], bins=[4, 8, 12, 16, 20, 24],
                              labels=["5-8", "9-12", "13-16", "17-20", "21-24"])
-tabel_umur = df.groupby("kelompok_umur", observed=True)[Y].agg(["count", "mean", "std"]).round(2)
-tabel_umur.columns = ["n", "rata-rata TBS", "simpangan baku"]
-tabel_umur.to_csv(os.path.join(OUT, "tabel7_tbs_per_kelompok_umur.csv"))
+tabel_umur = (df.groupby("kelompok_umur", observed=True)[Y]
+              .agg(["count", "mean", "median", "std", "min", "max"]).round(2))
+tabel_umur.columns = ["n", "rata-rata", "median", "simpangan baku", "minimum", "maksimum"]
+tabel_umur.to_csv(os.path.join(OUT, "tabel4_tbs_per_kelompok_umur.csv"))
 tabel_umur
 
 # %%
-model1 = smf.ols(f"{Y} ~ {UMUR} + {DEFISIT}", data=df).fit()
-model2 = smf.ols(f"{Y} ~ {UMUR} + I({UMUR}**2) + {DEFISIT}", data=df).fit()
-print(model1.summary())
-
-# %%
-print(model2.summary())
-
-# %%
-perbandingan = pd.DataFrame({
-    "Model 1 (linear)": [model1.rsquared, model1.rsquared_adj, model1.fvalue,
-                         model1.f_pvalue, model1.aic],
-    "Model 2 (+ umur²)": [model2.rsquared, model2.rsquared_adj, model2.fvalue,
-                          model2.f_pvalue, model2.aic],
-}, index=["R²", "R² disesuaikan", "F", "p-value F", "AIC"]).round(4)
-perbandingan.to_csv(os.path.join(OUT, "tabel8_perbandingan_model.csv"))
-
-koef = pd.DataFrame({"koefisien": model2.params, "p-value": model2.pvalues}).round(5)
-koef.to_csv(os.path.join(OUT, "tabel9_koefisien_model2.csv"))
-umur_puncak = -model2.params[UMUR] / (2 * model2.params[f"I({UMUR} ** 2)"])
-print(f"Umur dengan produktivitas tertinggi menurut Model 2: {umur_puncak:.1f} tahun")
-print(koef)
-perbandingan
-
-# %%
-# Scatter plot dan garis/kurva hasil regresi
 fig, ax = plt.subplots(1, 2, figsize=(13, 4.5))
+ax[0].bar(tabel_umur.index.astype(str), tabel_umur["rata-rata"], color="#4C72B0")
+for x, v in zip(tabel_umur.index.astype(str), tabel_umur["rata-rata"]):
+    ax[0].text(x, v + 0.3, f"{v:.2f}", ha="center")
+ax[0].set_xlabel("Kelompok umur tanaman (tahun)")
+ax[0].set_ylabel("Rata-rata produktivitas TBS (ton/ha)")
+ax[0].set_title("Rata-rata produktivitas per kelompok umur")
 
-ax[0].scatter(df[UMUR], df[Y], alpha=0.25, s=12)
-u = np.linspace(df[UMUR].min(), df[UMUR].max(), 100)
-d_rata = df[DEFISIT].mean()
-ax[0].plot(u, model1.predict(pd.DataFrame({UMUR: u, DEFISIT: d_rata})), "r--",
-           label="Model 1 (linear)")
-ax[0].plot(u, model2.predict(pd.DataFrame({UMUR: u, DEFISIT: d_rata})), "g-", lw=2,
-           label="Model 2 (kuadratik)")
-ax[0].set_xlabel(LABEL[UMUR])
-ax[0].set_ylabel(LABEL[Y])
-ax[0].set_title("Umur tanaman vs produktivitas")
-ax[0].legend()
-
-ax[1].scatter(df[DEFISIT], df[Y], alpha=0.25, s=12, color="#DD8452")
-m, b = np.polyfit(df[DEFISIT], df[Y], 1)
-dd = np.linspace(df[DEFISIT].min(), df[DEFISIT].max(), 100)
-ax[1].plot(dd, m * dd + b, "r--", label=f"garis tren (kemiringan {m:.4f})")
-ax[1].set_xlabel(LABEL[DEFISIT])
+kelompok = [df.loc[df["kelompok_umur"] == g, Y] for g in tabel_umur.index]
+ax[1].boxplot(kelompok, tick_labels=list(tabel_umur.index.astype(str)), showmeans=True)
+ax[1].set_xlabel("Kelompok umur tanaman (tahun)")
 ax[1].set_ylabel(LABEL[Y])
-ax[1].set_title("Defisit air vs produktivitas")
-ax[1].legend()
-simpan(fig, "gambar6_scatter_regresi.png")
+ax[1].set_title("Sebaran produktivitas per kelompok umur")
+simpan(fig, "gambar5_tbs_per_kelompok_umur.png")
 
 # %%
-# Pemeriksaan asumsi regresi Model 2: sisaan (residual) menyebar acak dan mendekati normal
-residual = model2.resid
-fig, ax = plt.subplots(1, 2, figsize=(12, 4.5))
-ax[0].scatter(model2.fittedvalues, residual, alpha=0.25, s=12)
-ax[0].axhline(0, color="red", lw=1)
-ax[0].set_xlabel("Nilai prediksi (ton/ha)")
-ax[0].set_ylabel("Residual")
-ax[0].set_title("Residual vs nilai prediksi")
-stats.probplot(residual, dist="norm", plot=ax[1])
-ax[1].set_title("Q-Q plot residual Model 2")
-simpan(fig, "gambar7_asumsi_residual.png")
+# Tingkat defisit air dibagi berdasarkan kuartil: rendah (<= Q1), sedang (Q1-Q3), tinggi (> Q3)
+q1_def, q3_def = df[DEFISIT].quantile([0.25, 0.75])
+print(f"Q1 defisit air = {q1_def:.2f} mm | Q3 defisit air = {q3_def:.2f} mm")
+df["tingkat_defisit"] = pd.cut(df[DEFISIT], bins=[-1, q1_def, q3_def, df[DEFISIT].max()],
+                               labels=["Rendah", "Sedang", "Tinggi"])
+tabel_defisit = (df.groupby("tingkat_defisit", observed=True)[Y]
+                 .agg(["count", "mean", "median", "std", "min", "max"]).round(2))
+tabel_defisit.columns = ["n", "rata-rata", "median", "simpangan baku", "minimum", "maksimum"]
+tabel_defisit.to_csv(os.path.join(OUT, "tabel5_tbs_per_tingkat_defisit.csv"))
+tabel_defisit
+
+# %%
+fig, ax = plt.subplots(1, 2, figsize=(13, 4.5))
+kelompok = [df.loc[df["tingkat_defisit"] == g, Y] for g in tabel_defisit.index]
+ax[0].boxplot(kelompok, tick_labels=list(tabel_defisit.index.astype(str)), showmeans=True)
+ax[0].set_xlabel("Tingkat defisit air (berdasarkan kuartil)")
+ax[0].set_ylabel(LABEL[Y])
+ax[0].set_title("Produktivitas TBS per tingkat defisit air")
+
+per_tahun_def = df.groupby("observation_year")[[DEFISIT, Y]].mean().round(2)
+ax[1].bar(per_tahun_def.index, per_tahun_def[DEFISIT], color="#DD8452")
+ax[1].set_xlabel("Tahun")
+ax[1].set_ylabel("Rata-rata defisit air (mm/tahun)")
+ax[1].set_title("Rata-rata defisit air per tahun")
+simpan(fig, "gambar6_tbs_per_tingkat_defisit.png")
+per_tahun_def.to_csv(os.path.join(OUT, "tabel6_defisit_dan_tbs_per_tahun.csv"))
+per_tahun_def
 
 # %% [markdown]
-# ## 6. Ringkasan hasil
+# ## 5. Ringkasan hasil
 
 # %%
-print("RINGKASAN HASIL ANALISIS")
+sesudah = per_tahun.loc[[2024, 2025]]
+sebelum = per_tahun.loc[2019:2023]
+print("RINGKASAN HASIL ANALISIS DESKRIPTIF")
 print("=" * 60)
 print(f"RM1  Rata-rata produktivitas TBS {df[Y].mean():.2f} ton/ha (sd {df[Y].std():.2f}), "
-      f"rentang {df[Y].min():.2f}-{df[Y].max():.2f}")
-print(f"     Rata-rata umur tanaman {df[UMUR].mean():.1f} tahun, "
-      f"defisit air {df[DEFISIT].mean():.1f} mm/tahun")
-print(f"RM2  Selisih rata-rata presisi - seragam (2024-2025): {selisih.mean():.2f} ton/ha, "
-      f"t = {uji_t.statistic:.2f}, p = {uji_t.pvalue:.2e} -> "
-      f"{'signifikan' if uji_t.pvalue < ALPHA else 'tidak signifikan'}")
-sebelum = tabel_uji.iloc[0]
-print(f"     Sebelum perlakuan (2019-2023): selisih {sebelum['rata-rata selisih']:.2f}, "
-      f"p = {sebelum['p-value']:.3f} "
-      f"-> {sebelum['keputusan']}")
-print(f"RM3  Model 1 R² = {model1.rsquared:.3f}; Model 2 (dengan umur²) R² = {model2.rsquared:.3f}")
-print(f"     Produktivitas tertinggi pada umur sekitar {umur_puncak:.1f} tahun; "
-      f"koefisien defisit air = {model2.params[DEFISIT]:.4f} ton/ha per mm")
+      f"median {df[Y].median():.2f}, rentang {df[Y].min():.2f}-{df[Y].max():.2f}")
+print(f"     Rata-rata umur tanaman {df[UMUR].mean():.1f} tahun; "
+      f"defisit air rata-rata {df[DEFISIT].mean():.1f} mm, median {df[DEFISIT].median():.1f} mm")
+print(f"RM2  2019-2023: selisih rata-rata per tahun presisi - kontrol antara "
+      f"{sebelum['Selisih'].min():.2f} dan {sebelum['Selisih'].max():.2f} ton/ha")
+print(f"     2024-2025: blok presisi lebih tinggi {sesudah['Selisih'].min():.2f}-"
+      f"{sesudah['Selisih'].max():.2f} ton/ha per tahun")
+terbaik = tabel_umur["rata-rata"].idxmax()
+print(f"RM3  Rata-rata tertinggi pada kelompok umur {terbaik} tahun "
+      f"({tabel_umur.loc[terbaik, 'rata-rata']:.2f} ton/ha)")
+print(f"     Rata-rata produktivitas: "
+      f"defisit rendah {tabel_defisit.loc['Rendah', 'rata-rata']:.2f}, "
+      f"sedang {tabel_defisit.loc['Sedang', 'rata-rata']:.2f}, "
+      f"tinggi {tabel_defisit.loc['Tinggi', 'rata-rata']:.2f} ton/ha")
 print(f"\nSemua grafik dan tabel tersimpan di folder '{OUT}/'")

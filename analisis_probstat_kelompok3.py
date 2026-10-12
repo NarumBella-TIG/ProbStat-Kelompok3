@@ -121,8 +121,10 @@ def ringkasan(data):
         "simpangan baku": data.std(),
         "varians": data.var(),
         "minimum": data.min(),
+        "P10": data.quantile(0.10),
         "Q1": q1,
         "Q3": q3,
+        "P90": data.quantile(0.90),
         "maksimum": data.max(),
         "jangkauan": data.max() - data.min(),
         "IQR": q3 - q1,
@@ -160,6 +162,24 @@ for i, k in enumerate(UTAMA):
 fig.suptitle("Boxplot variabel utama (segitiga = rata-rata, garis oranye = median)")
 simpan(fig, "gambar2_boxplot_variabel_utama.png")
 
+# %%
+# Asal pencilan (outlier): data di luar Q1 - 1,5 x IQR atau Q3 + 1,5 x IQR
+q1_y, q3_y = df[Y].quantile([0.25, 0.75])
+batas_y = q1_y - 1.5 * (q3_y - q1_y)
+pencilan_y = df[df[Y] < batas_y]
+print(f"Pencilan produktivitas (< {batas_y:.2f} ton/ha): {len(pencilan_y)} data")
+print("  umur tanaman (min, rata-rata, maks):", pencilan_y[UMUR].min(),
+      round(pencilan_y[UMUR].mean(), 1), pencilan_y[UMUR].max())
+print("  jumlah dengan umur >= 21 tahun:", int((pencilan_y[UMUR] >= 21).sum()))
+print("  per tahun:", pencilan_y["observation_year"].value_counts().sort_index().to_dict())
+print("  per kelompok blok:", pencilan_y["assigned_group"].value_counts().to_dict())
+
+q1_d, q3_d = df[DEFISIT].quantile([0.25, 0.75])
+batas_d = q3_d + 1.5 * (q3_d - q1_d)
+pencilan_d = df[df[DEFISIT] > batas_d]
+print(f"\nPencilan defisit air (> {batas_d:.2f} mm): {len(pencilan_d)} data")
+print("  per tahun:", pencilan_d["observation_year"].value_counts().sort_index().to_dict())
+
 # %% [markdown]
 # ## 3. Rumusan Masalah 2: Perbandingan blok presisi berbasis sensor dan blok seragam
 #
@@ -175,6 +195,14 @@ tabel_kelompok.columns = ["n", "rata-rata", "median", "simpangan baku", "minimum
 tabel_kelompok = tabel_kelompok.rename(index=NAMA_KELOMPOK)
 tabel_kelompok.to_csv(os.path.join(OUT, "tabel2_deskriptif_per_kelompok_periode.csv"))
 tabel_kelompok
+
+# %%
+# Pembanding: apakah umur tanaman dan defisit air kedua kelompok setara pada setiap periode?
+kondisi = df.groupby(["periode", "assigned_group"])[[UMUR, DEFISIT]].mean().round(2)
+kondisi.columns = ["rata-rata umur (tahun)", "rata-rata defisit air (mm)"]
+kondisi = kondisi.rename(index=NAMA_KELOMPOK)
+kondisi.to_csv(os.path.join(OUT, "tabel7_kondisi_umur_defisit_per_kelompok.csv"))
+kondisi
 
 # %%
 # Rata-rata produktivitas per tahun untuk kedua kelompok blok (selisih dihitung sebelum dibulatkan)
@@ -249,6 +277,12 @@ tabel_defisit = (df.groupby("tingkat_defisit", observed=True)[Y]
 tabel_defisit.columns = ["n", "rata-rata", "median", "simpangan baku", "minimum", "maksimum"]
 tabel_defisit.to_csv(os.path.join(OUT, "tabel5_tbs_per_tingkat_defisit.csv"))
 tabel_defisit
+
+# %%
+# Asal pengamatan setiap tingkat defisit air menurut tahun, serta rata-rata umurnya
+print(pd.crosstab(df["observation_year"], df["tingkat_defisit"]))
+print("\nRata-rata umur per tingkat defisit:",
+      df.groupby("tingkat_defisit", observed=True)[UMUR].mean().round(1).to_dict())
 
 # %%
 fig, ax = plt.subplots(1, 2, figsize=(13, 4.5))
